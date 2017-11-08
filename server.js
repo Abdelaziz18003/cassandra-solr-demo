@@ -37,11 +37,11 @@ app.get('/', (req, res) => {
 app.post('/insert', (req, res) => {
   var query = `INSERT INTO books (id, title, description) VALUES (${uuid()}, '${req.body.title}', '${req.body.description}')`;
   console.log(req.body)
-  client.execute(query, (err) => {
+  client.execute(query, (err, result) => {
     if (err) {
       res.json({
         success: false,
-        message: result.message
+        message: err.message
       })
     }
     else {
@@ -52,3 +52,60 @@ app.post('/insert', (req, res) => {
     }
   });
 });
+
+// get books
+app.get('/get', (req, res) => {
+  var query = `SELECT * FROM books`;
+  client.execute(query, (err, result) => {
+    if (!err) {
+      res.json({
+        success: true,
+        books: result.rows
+      })
+    }
+  });
+});
+
+// update book
+app.post('/update', (req, res) => {
+  var book = {
+    id: req.query.id,
+    title: req.body.title,
+    description: req.body.description
+  };
+  var query = `UPDATE books SET title = '${book.title}', description = '${book.description}' WHERE id = ${book.id}`;
+  client.execute(query, (err, result) => {
+    if (!err) {
+      res.json({
+        success: true,
+        message: 'book updated successfully'
+      })
+    }
+    else {
+      res.json({
+        success: false,
+        err
+      })
+    }
+  });
+});
+
+// delete book
+app.get('/delete', (req, res) => {
+  var query = `DELETE FROM books WHERE id = ${req.query.id}`;
+  client.execute(query, (err, result) => {
+    if (!err) {
+      res.json({
+        success: true,
+        message: 'book deleted successfully'
+      })
+    }
+    else {
+      res.json({
+        success: false,
+        err
+      })
+    }
+  });
+});
+
