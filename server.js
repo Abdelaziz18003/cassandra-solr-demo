@@ -1,6 +1,7 @@
 var express = require('express');
 var bodyParser = require('body-parser');
 var cassandra = require('cassandra-driver');
+var solrClient = require('./solr-client').Client;
 var uuid = cassandra.types.Uuid.random;
 
 // create the server
@@ -25,6 +26,9 @@ client.connect((err) => {
   console.log('server started at http://localhost:3000 ...');
 });
 
+// connect to solr
+solr = new solrClient({host: 'localhost', port: 8983, core: 'solr_core'});
+
 // home route
 app.get('/', (req, res) => {
   res.json({
@@ -35,8 +39,11 @@ app.get('/', (req, res) => {
 
 // insert book
 app.post('/insert', (req, res) => {
-  var query = `INSERT INTO books (id, title, description) VALUES (${uuid()}, '${req.body.title}', '${req.body.description}')`;
-  console.log(req.body)
+
+  var query = `INSERT INTO books (id, title, description) 
+  VALUES (${uuid()}, '${req.body.title}', '${req.body.description}')`;
+
+  // execute the query
   client.execute(query, (err, result) => {
     if (err) {
       res.json({
@@ -50,6 +57,11 @@ app.post('/insert', (req, res) => {
         message: 'book inserted successfully'
       })
     }
+  });
+  
+  // index the doc to solr
+  solr.add(req.body, (res) => {
+    console.log(res);
   });
 });
 
@@ -109,3 +121,9 @@ app.get('/delete', (req, res) => {
   });
 });
 
+// search indexed books
+app.get('/search', (req, res) => {
+  solr.search(req.query.q, (docs) => {
+    res.json(docs);
+  })
+})
